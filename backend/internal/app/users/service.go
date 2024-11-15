@@ -3,7 +3,10 @@ package users
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"naimix/internal/app/models"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 var (
@@ -12,27 +15,52 @@ var (
 	ErrNotFound      = errors.New("user not found")
 )
 
+// SignIn аутентификация пользователя
 func SignIn(DB *sql.DB, email, password string) (models.User, error) {
 	user, err := GetUserByEmail(DB, email)
 	if err != nil {
 		return models.User{}, ErrIncorrectData
 	}
 
-	if user.PasswordHash != password { // Здесь должен быть хэш и проверка
+	// Сравниваем хэшированный пароль
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
 		return models.User{}, ErrIncorrectData
 	}
 
 	return user, nil
 }
 
-func Register(DB *sql.DB, user models.User) error {
-	if _, err := GetUserByPhone(DB, user.PhoneNumber); err == nil {
-		return ErrAlreadyExists
+// Register регистрация пользователя
+func Register(DB *sql.DB, req models.RegisterRequest) (models.User, error) {
+	if _, err := GetUserByPhone(DB, req.PhoneNumber); err == nil {
+		return models.User{}, ErrAlreadyExists
+	}
+	if _, err := GetUserByEmail(DB, req.Email); err == nil {
+		return models.User{}, ErrAlreadyExists
 	}
 
-	if _, err := GetUserByEmail(DB, user.Email); err == nil {
-		return ErrAlreadyExists
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return models.User{}, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	return AddToDB(DB, user)
+	// Создаем пользователя
+	user := models.User{
+		FirstName:    req.FirstName,
+		SecondName:   req.SecondName,
+		CompanyName:  req.CompanyName,
+		Email:        req.Email,
+		PhoneNumber:  req.PhoneNumber,
+		PasswordHash: string(hashedPassword),
+	}
+
+	id, createdAt, err := AddToDB(DB, user)
+	if err != nil {
+		return models.User{}, err
+	}
+
+	user.ID = id
+	user.CreatedAt = createdAt
+	return user, nil
 }

@@ -2,13 +2,14 @@ package db
 
 import (
 	"database/sql"
+	"io/ioutil"
 	"log"
 
 	_ "github.com/lib/pq"
 )
 
 func NewDB() *sql.DB {
-	db, err := sql.Open("postgres", "postgres://username:password@postgres:5432/storagedb?sslmode=disable")
+	db, err := sql.Open("postgres", "postgres://username:password@localhost:5432/mydatabase?sslmode=disable")
 
 	if err != nil {
 		log.Fatal("connection: ", err)
@@ -21,4 +22,19 @@ func NewDB() *sql.DB {
 	}
 
 	return db
+}
+
+func Migrate(db *sql.DB, filePath string) error {
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(string(content))
+	if err != nil {
+		return err
+	}
+
+	log.Println("Migration completed successfully")
+	return nil
 }

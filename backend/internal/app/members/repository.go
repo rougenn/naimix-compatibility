@@ -18,8 +18,21 @@ func AddToDB(db *sql.DB, member models.Member) (int, error) {
 
 func DeleteFromDB(db *sql.DB, memberID int) error {
 	query := `DELETE FROM members WHERE id = $1`
-	_, err := db.Exec(query, memberID)
-	return err
+	result, err := db.Exec(query, memberID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Возвращаем стандартную ошибку для случаев, когда запись не найдена
+	}
+
+	return nil
 }
 
 func GetMemberByID(db *sql.DB, memberID int) (models.Member, error) {

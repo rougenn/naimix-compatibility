@@ -8,18 +8,31 @@ import (
 func AddToDB(db *sql.DB, team models.Team) (int, error) {
 	query := `
 		INSERT INTO teams (name, created_at)
-		VALUES ($1, $2)
+		VALUES ($1, EXTRACT(EPOCH FROM now())::BIGINT)
 		RETURNING id
 	`
 	var teamID int
-	err := db.QueryRow(query, team.Name, team.CreatedAt).Scan(&teamID)
+	err := db.QueryRow(query, team.Name).Scan(&teamID)
 	return teamID, err
 }
 
 func DeleteFromDB(db *sql.DB, teamID int) error {
 	query := `DELETE FROM teams WHERE id = $1`
-	_, err := db.Exec(query, teamID)
-	return err
+	result, err := db.Exec(query, teamID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Используем стандартную ошибку, чтобы указать, что ничего не удалено
+	}
+
+	return nil
 }
 
 func AddMemberToTeam(db *sql.DB, teamID, memberID int) error {
@@ -36,8 +49,21 @@ func RemoveMemberFromTeam(db *sql.DB, teamID, memberID int) error {
 		DELETE FROM team_members
 		WHERE team_id = $1 AND member_id = $2
 	`
-	_, err := db.Exec(query, teamID, memberID)
-	return err
+	result, err := db.Exec(query, teamID, memberID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows // Возвращаем стандартную ошибку для отсутствующих записей
+	}
+
+	return nil
 }
 
 func GetTeamWithMembers(db *sql.DB, teamID int) (models.Team, []models.Member, error) {

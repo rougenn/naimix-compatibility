@@ -27,13 +27,16 @@ type Server struct {
 
 func New(host string) *Server {
 	database := db.NewDB()
-	defer database.Close()
 
 	s := Server{
 		host: host,
 		DB:   database,
 	}
 	return &s
+}
+
+func (r *Server) Stop() {
+	r.DB.Close()
 }
 
 func (r *Server) newAPI() *gin.Engine {
@@ -43,14 +46,16 @@ func (r *Server) newAPI() *gin.Engine {
 		ctx.Status(http.StatusOK)
 	})
 
-	engine.POST("/user/login")
-	engine.POST("/user/signup")
-	engine.POST("/team/create")
-	engine.POST("/team/delete")
-	engine.POST("/team/add-member")
-	engine.POST("/team/delete-member")
-	engine.POST("/member/create")
-	engine.POST("/member/delete")
+	engine.POST("/user/login", r.LogIn)
+	engine.POST("/user/signup", r.Register)
+
+	engine.POST("/team/create", r.CreateTeam)
+	engine.POST("/team/delete", r.DeleteTeam)
+	engine.POST("/team/add-member", r.AddMember)
+	engine.POST("/team/delete-member", r.DeleteMember)
+
+	engine.POST("/member/create", r.CreateMember)
+	engine.POST("/member/delete", r.DeleteMember)
 
 	return engine
 }
@@ -63,10 +68,7 @@ func (r *Server) Start() {
 }
 
 func (r *Server) LogIn(ctx *gin.Context) {
-	var req struct {
-		Email    string `json:"email" binding:"required,email"`
-		Password string `json:"password" binding:"required"`
-	}
+	var req models.LoginRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -74,7 +76,7 @@ func (r *Server) LogIn(ctx *gin.Context) {
 
 	user, err := users.SignIn(r.DB, req.Email, req.Password)
 	if err != nil {
-		if err == ErrIncorrectData {
+		if errors.Is(err, users.ErrIncorrectData) {
 			ctx.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
@@ -86,15 +88,15 @@ func (r *Server) LogIn(ctx *gin.Context) {
 }
 
 func (r *Server) Register(ctx *gin.Context) {
-	var req models.User
+	var req models.RegisterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	err := users.Register(r.DB, req)
+	user, err := users.Register(r.DB, req)
 	if err != nil {
-		if err == ErrAlreadyExists {
+		if errors.Is(err, users.ErrAlreadyExists) {
 			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
@@ -102,17 +104,23 @@ func (r *Server) Register(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusCreated, gin.H{"message": "User registered successfully"})
+	ctx.JSON(http.StatusCreated, gin.H{"user": user})
 }
 
 func (r *Server) CreateTeam(ctx *gin.Context) {
-	var req models.Team
+	var req struct {
+		Name string `json:"name" binding:"required"`
+	}
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	teamID, err := teams.AddToDB(r.DB, req)
+	team := models.Team{
+		Name: req.Name,
+	}
+
+	teamID, err := teams.AddToDB(r.DB, team)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -132,6 +140,10 @@ func (r *Server) DeleteTeam(ctx *gin.Context) {
 
 	err := teams.DeleteFromDB(r.DB, req.TeamID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Team not found"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -170,6 +182,10 @@ func (r *Server) RemoveMember(ctx *gin.Context) {
 
 	err := teams.RemoveMemberFromTeam(r.DB, req.TeamID, req.MemberID)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Member not found in the team"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -178,10 +194,18 @@ func (r *Server) RemoveMember(ctx *gin.Context) {
 }
 
 func (r *Server) CreateMember(ctx *gin.Context) {
-	var member models.Member
-	if err := ctx.ShouldBindJSON(&member); err != nil {
+	var req struct {
+		Role      string                 `json:"role" binding:"required"`
+		BirthInfo models.MemberBirthInfo `json:"birthday_info" binding:"required"`
+	}
+	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
+	}
+
+	member := models.Member{
+		Role:      req.Role,
+		BirthInfo: req.BirthInfo,
 	}
 
 	memberID, err := members.AddToDB(r.DB, member)
@@ -202,7 +226,12 @@ func (r *Server) DeleteMember(ctx *gin.Context) {
 		return
 	}
 
-	if err := members.DeleteFromDB(r.DB, request.MemberID); err != nil {
+	err := members.DeleteFromDB(r.DB, request.MemberID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
+			return
+		}
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

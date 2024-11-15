@@ -29,6 +29,11 @@ type Member struct {
 	BirthInfo MemberBirthInfo `json:"birthday_info"`
 }
 
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
 type RegisterRequest struct {
 	FirstName   string `json:"first_name" binding:"required"`
 	SecondName  string `json:"second_name" binding:"required"`
@@ -36,9 +41,4 @@ type RegisterRequest struct {
 	PhoneNumber string `json:"phone_number" binding:"required"`   // в формате +7..
 	Password    string `json:"password" binding:"required,min=8"` // !!! пароль минимум 8 символов
 	CompanyName string `json:"company_name"`
-}
-
-type LoginRequest struct {
-	Email    string `json:"email" binding:"required,email"`
-	Password string `json:"password" binding:"required"`
 }

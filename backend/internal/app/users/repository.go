@@ -5,13 +5,19 @@ import (
 	"naimix/internal/app/models"
 )
 
-func AddToDB(db *sql.DB, user models.User) error {
+func AddToDB(db *sql.DB, user models.User) (int, int64, error) {
 	query := `
-		INSERT INTO users (first_name, second_name, company_name, email, phone_number, password_hash, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+    INSERT INTO users (first_name, second_name, company_name, email, phone_number, password_hash)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING id, created_at
 	`
-	_, err := db.Exec(query, user.FirstName, user.SecondName, user.CompanyName, user.Email, user.PhoneNumber, user.PasswordHash, user.CreatedAt)
-	return err
+	var id int
+	var createdAt int64
+	err := db.QueryRow(query, user.FirstName, user.SecondName, user.CompanyName, user.Email, user.PhoneNumber, user.PasswordHash).Scan(&id, &createdAt)
+	if err != nil {
+		return 0, 0, err
+	}
+	return id, createdAt, nil
 }
 
 func DeleteFromDB(db *sql.DB, userID int) error {
