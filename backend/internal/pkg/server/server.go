@@ -52,10 +52,14 @@ func (r *Server) newAPI() *gin.Engine {
 	engine.POST("/team/create", r.CreateTeam)
 	engine.POST("/team/delete", r.DeleteTeam)
 	engine.POST("/team/add-member", r.AddMember)
-	engine.POST("/team/delete-member", r.DeleteMember)
+	engine.POST("/team/delete-member", r.RemoveMember)
+	engine.GET("/teams", r.GetAllTeams)
 
 	engine.POST("/member/create", r.CreateMember)
 	engine.POST("/member/delete", r.DeleteMember)
+	engine.GET("/members", r.GetAllMembers)
+
+	// get all the teams
 
 	return engine
 }
@@ -237,4 +241,25 @@ func (r *Server) DeleteMember(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Member deleted successfully"})
+}
+
+func (r *Server) GetAllMembers(ctx *gin.Context) {
+	members, err := members.GetAllMembers(r.DB)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch members"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"members": members})
+}
+
+func (r *Server) GetAllTeams(ctx *gin.Context) {
+	teams, err := teams.GetAllTeams(r.DB)
+	if err != nil {
+		log.Printf("Failed to fetch teams: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch teams"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"teams": teams})
 }

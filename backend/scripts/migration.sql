@@ -38,3 +38,5 @@ CREATE TABLE IF NOT EXISTS team_members (
     member_id INT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
     PRIMARY KEY (team_id, member_id)
 );
+
+

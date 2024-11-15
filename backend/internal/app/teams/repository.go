@@ -2,7 +2,10 @@ package teams
 
 import (
 	"database/sql"
+	"log"
 	"naimix/internal/app/models"
+
+	"github.com/lib/pq"
 )
 
 func AddToDB(db *sql.DB, team models.Team) (int, error) {
@@ -60,7 +63,7 @@ func RemoveMemberFromTeam(db *sql.DB, teamID, memberID int) error {
 	}
 
 	if rowsAffected == 0 {
-		return sql.ErrNoRows // Возвращаем стандартную ошибку для отсутствующих записей
+		return sql.ErrNoRows // Возвращаем ошибку, если связь не найдена
 	}
 
 	return nil
@@ -101,4 +104,48 @@ func GetTeamWithMembers(db *sql.DB, teamID int) (models.Team, []models.Member, e
 	}
 
 	return team, members, nil
+}
+
+func GetAllTeams(db *sql.DB) ([]models.Team, error) {
+	query := `
+		SELECT t.id, t.name, t.created_at, 
+		       COALESCE(array_remove(array_agg(tm.member_id), NULL), '{}') AS member_ids
+		FROM teams t
+		LEFT JOIN team_members tm ON t.id = tm.team_id
+		GROUP BY t.id
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		log.Printf("Error executing query in GetAllTeams: %v", err)
+		return nil, err
+	}
+	defer rows.Close()
+
+	var teams []models.Team
+	for rows.Next() {
+		var team models.Team
+		var memberIDs pq.Int64Array // Используем промежуточный тип для PostgreSQL массива
+
+		err := rows.Scan(&team.ID, &team.Name, &team.CreatedAt, &memberIDs)
+		if err != nil {
+			log.Printf("Error scanning row in GetAllTeams: %v", err)
+			return nil, err
+		}
+
+		// Преобразуем []int64 в []int
+		team.Members = make([]int, len(memberIDs))
+		for i, id := range memberIDs {
+			team.Members[i] = int(id)
+		}
+
+		teams = append(teams, team)
+	}
+
+	if err = rows.Err(); err != nil {
+		log.Printf("Error iterating rows in GetAllTeams: %v", err)
+		return nil, err
+	}
+
+	return teams, nil
 }

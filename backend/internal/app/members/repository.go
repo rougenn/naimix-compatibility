@@ -46,3 +46,31 @@ func GetMemberByID(db *sql.DB, memberID int) (models.Member, error) {
 	err := row.Scan(&member.ID, &member.Role, &member.BirthInfo.Timestamp, &member.BirthInfo.Location)
 	return member, err
 }
+
+func GetAllMembers(db *sql.DB) ([]models.Member, error) {
+	query := `
+		SELECT id, role, birthday_timestamp, birthday_location
+		FROM members
+	`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []models.Member
+	for rows.Next() {
+		var member models.Member
+		err := rows.Scan(&member.ID, &member.Role, &member.BirthInfo.Timestamp, &member.BirthInfo.Location)
+		if err != nil {
+			return nil, err
+		}
+		members = append(members, member)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return members, nil
+}
