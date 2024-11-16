@@ -21,9 +21,8 @@ const Registration = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Отправка данных в формате ожидаемом бэкендом
             await axios.post('/user/signup', formData);
-            navigate('/login'); // Переход на страницу логина
+            navigate('/login'); 
         } catch (error) {
             console.error('Ошибка регистрации:', error.response?.data?.error || error.message);
         }

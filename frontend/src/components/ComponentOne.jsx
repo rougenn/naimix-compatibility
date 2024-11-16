@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './ComponentOne.css';
+import { getUsers, getGroups } from './apiService';
 
-const ComponentOne = ({ users, groups }) => {
+const ComponentOne = () => {
+    const [users, setUsers] = useState([]);
+    const [groups, setGroups] = useState([]);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const fetchedUsers = await getUsers();
+                const fetchedGroups = await getGroups();
+                setUsers(fetchedUsers);
+                setGroups(fetchedGroups);
+            } catch (error) {
+                console.error('Ошибка загрузки данных:', error);
+            }
+        };
+        fetchData();
+    }, []);
+
     return (
         <div className="component-one">
             <div className="list-container">
                 <h2>Список работников</h2>
                 <ul>
-                    {users.map((user, index) => (
-                        <li key={index}>
+                    {users.map((user) => (
+                        <li key={user.id}>
                             {user.name} - <span className="user-status">{user.status}</span>
                         </li>
                     ))}
@@ -18,12 +36,14 @@ const ComponentOne = ({ users, groups }) => {
             <div className="list-container">
                 <h2>Список отделов</h2>
                 <ul>
-                    {groups.map((group, index) => (
-                        <li key={index}>
+                    {groups.map((group) => (
+                        <li key={group.id}>
                             <strong>{group.name}</strong>
                             <ul>
-                                {group.users.map((user, i) => (
-                                    <li key={i}>{user.name} - {user.status}</li>
+                                {group.users.map((user) => (
+                                    <li key={user.id}>
+                                        {user.name} - {user.status}
+                                    </li>
                                 ))}
                             </ul>
                         </li>
