@@ -6,10 +6,10 @@ import './registration.css';
 const Registration = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        surname: '',
-        name: '',
-        company: '',
-        phone: '',
+        second_name: '',
+        first_name: '',
+        company_name: '',
+        phone_number: '',
         email: '',
         password: '',
     });

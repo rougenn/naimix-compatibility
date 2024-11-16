@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from './axiosInstance.jsx';
 import Cookies from 'js-cookie';
-import './login.css';
+import './registration.css';
 
 const Login = () => {
     const navigate = useNavigate();
