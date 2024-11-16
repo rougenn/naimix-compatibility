@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from './axiosInstance.jsx';
+import axios from './axiosInstance';
 import './registration.css';
 
 const Registration = () => {
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
-        surname: '',
-        name: '',
-        company: '',
-        phone: '',
+        first_name: '',
+        second_name: '',
+        company_name: '',
+        phone_number: '',
         email: '',
         password: '',
     });
@@ -21,6 +21,7 @@ const Registration = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
+            // Отправка данных в формате ожидаемом бэкендом
             await axios.post('/user/signup', formData);
             navigate('/login'); // Переход на страницу логина
         } catch (error) {
@@ -36,51 +37,57 @@ const Registration = () => {
                 <form onSubmit={handleSubmit}>
                     <input
                         type="text"
-                        name="surname"
-                        placeholder="фамилия"
-                        value={formData.surname}
+                        name="first_name"
+                        placeholder="Имя"
+                        value={formData.first_name}
                         onChange={handleChange}
                         className="input-field"
+                        required
                     />
                     <input
                         type="text"
-                        name="name"
-                        placeholder="имя"
-                        value={formData.name}
+                        name="second_name"
+                        placeholder="Фамилия"
+                        value={formData.second_name}
                         onChange={handleChange}
                         className="input-field"
+                        required
                     />
                     <input
                         type="text"
-                        name="company"
-                        placeholder="компания"
-                        value={formData.company}
+                        name="company_name"
+                        placeholder="Компания"
+                        value={formData.company_name}
                         onChange={handleChange}
                         className="input-field"
                     />
                     <input
                         type="tel"
-                        name="phone"
-                        placeholder="телефон"
-                        value={formData.phone}
+                        name="phone_number"
+                        placeholder="Телефон (+7...)"
+                        value={formData.phone_number}
                         onChange={handleChange}
                         className="input-field"
+                        required
                     />
                     <input
                         type="email"
                         name="email"
-                        placeholder="почта"
+                        placeholder="Почта"
                         value={formData.email}
                         onChange={handleChange}
                         className="input-field"
+                        required
                     />
                     <input
                         type="password"
                         name="password"
-                        placeholder="пароль"
+                        placeholder="Пароль (минимум 8 символов)"
                         value={formData.password}
                         onChange={handleChange}
                         className="input-field"
+                        required
+                        minLength="8"
                     />
                     <button type="submit" className="submit-button">отправить</button>
                 </form>
