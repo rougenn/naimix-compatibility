@@ -1,0 +1,125 @@
+.component-two {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: stretch;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+    background-color: #f0f0f0;
+    box-sizing: border-box;
+}
+
+.list-container {
+    width: calc(50% - 11px);
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    box-sizing: border-box;
+}
+
+.divider {
+    width: 2px;
+    background-color: #ddd;
+    margin: 0;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.1);
+    align-self: stretch;
+}
+
+.list-container h2 {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #333;
+    text-align: left;
+}
+
+.group-input {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.save-button {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 15px;
+    font-size: 14px;
+}
+
+.save-button:hover {
+    background-color: #45a049;
+}
+
+.list-container ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+}
+
+.list-container ul li {
+    font-size: 14px;
+    color: #555;
+    padding: 5px 0;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.list-container ul li:last-child {
+    border-bottom: none;
+}
+
+.group-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.edit-button {
+    background-color: #FFA500;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.edit-button:hover {
+    background-color: #ff8c00;
+}
+
+.delete-button {
+    background-color: #FF4D4D;
+    color: white;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.delete-button:hover {
+    background-color: #ff3333;
+}
+.list-container h3 {
+    font-size: 16px;
+    font-weight: bold;
+    margin: 10px 0;
+    color: #333; 
+    text-align: left; 
+}
