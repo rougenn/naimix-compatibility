@@ -21,11 +21,11 @@ const Login = () => {
         try {
             const response = await axios.post('/user/login', formData);
 
-            // Сохраняем токены в cookies
+            
             Cookies.set('access_token', response.data.access_token, { expires: 0.0035 }); // 5 минут
             Cookies.set('refresh_token', response.data.refresh_token, { expires: 7 }); // 7 дней
 
-            navigate('/dashboard'); // Переход на главную страницу или дашборд
+            navigate('/dashboard');
         } catch (error) {
             setErrorMessage(
                 error.response?.data?.error || 'Ошибка авторизации. Проверьте введённые данные.'
