@@ -11,8 +11,8 @@ const ComponentOne = () => {
             try {
                 const fetchedUsers = await getUsers();
                 const fetchedGroups = await getGroups();
-                setUsers(fetchedUsers);
-                setGroups(fetchedGroups);
+                setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []);
+                setGroups(Array.isArray(fetchedGroups) ? fetchedGroups : []);
             } catch (error) {
                 console.error('Ошибка загрузки данных:', error);
             }
@@ -25,7 +25,7 @@ const ComponentOne = () => {
             <div className="list-container">
                 <h2>Список работников</h2>
                 <ul>
-                    {users.map((user) => (
+                    {Array.isArray(users) && users.map((user) => (
                         <li key={user.id}>
                             {user.name} - <span className="user-status">{user.status}</span>
                         </li>
@@ -36,11 +36,11 @@ const ComponentOne = () => {
             <div className="list-container">
                 <h2>Список отделов</h2>
                 <ul>
-                    {groups.map((group) => (
+                    {Array.isArray(groups) && groups.map((group) => (
                         <li key={group.id}>
                             <strong>{group.name}</strong>
                             <ul>
-                                {group.users.map((user) => (
+                                {Array.isArray(group.users) && group.users.map((user) => (
                                     <li key={user.id}>
                                         {user.name} - {user.status}
                                     </li>

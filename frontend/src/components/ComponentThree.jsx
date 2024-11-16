@@ -8,14 +8,14 @@ const ComponentThree = () => {
     const [birthDate, setBirthDate] = useState('');
     const [birthCity, setBirthCity] = useState('');
     const [birthTime, setBirthTime] = useState('');
-    const [status, setStatus] = useState('worker');
+    const [role, setRole] = useState('worker'); // Заменено на role для соответствия серверу
     const [selectedUser, setSelectedUser] = useState(null);
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 const fetchedUsers = await getUsers();
-                setUsers(fetchedUsers);
+                setUsers(Array.isArray(fetchedUsers) ? fetchedUsers : []); // Проверяем, что данные — это массив
             } catch (error) {
                 console.error('Ошибка загрузки пользователей:', error);
             }
@@ -24,20 +24,34 @@ const ComponentThree = () => {
     }, []);
 
     const handleAddUser = async () => {
+        if (!userName.trim() || !birthDate || !birthCity.trim() || !birthTime.trim()) {
+            alert('Пожалуйста, заполните все поля перед добавлением пользователя.');
+            return;
+        }
+
+        // Преобразование даты и времени в Unix timestamp
+        const birthDateTime = new Date(`${birthDate}T${birthTime}`);
+        const timestamp = Math.floor(birthDateTime.getTime() / 1000);
+
         try {
             const newUser = await createUser({
-                name: userName,
-                birth_date: birthDate,
-                birth_city: birthCity,
-                birth_time: birthTime,
-                status,
+                role, // Используем роль вместо статуса
+                birthday_info: {
+                    birthday_timestamp: timestamp,
+                    birthday_location: birthCity,
+                },
             });
-            setUsers([...users, newUser]);
-            setUserName('');
-            setBirthDate('');
-            setBirthCity('');
-            setBirthTime('');
-            setStatus('worker');
+
+            if (newUser?.id) {
+                setUsers((prevUsers) => [...prevUsers, newUser]);
+                setUserName('');
+                setBirthDate('');
+                setBirthCity('');
+                setBirthTime('');
+                setRole('worker');
+            } else {
+                console.error('Ошибка создания пользователя: данные пользователя отсутствуют.');
+            }
         } catch (error) {
             console.error('Ошибка при добавлении пользователя:', error);
         }
@@ -46,9 +60,9 @@ const ComponentThree = () => {
     const handleDeleteUser = async (userId) => {
         try {
             await deleteUser(userId);
-            setUsers(users.filter((user) => user.id !== userId));
+            setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId));
             if (selectedUser && selectedUser.id === userId) {
-                setSelectedUser(null);
+                setSelectedUser(null); // Убираем выделенного пользователя, если он удалён
             }
         } catch (error) {
             console.error('Ошибка при удалении пользователя:', error);
@@ -56,17 +70,15 @@ const ComponentThree = () => {
     };
 
     const handleSelectUser = (user) => {
-        if (selectedUser && selectedUser.id === user.id) {
-            setSelectedUser(null);
-        } else {
-            setSelectedUser(user);
-        }
+        setSelectedUser((prevSelected) =>
+            prevSelected && prevSelected.id === user.id ? null : user
+        );
     };
 
     return (
         <div className="component-three">
             <div className="list-container">
-                <h2>Добавить нового работника</h2>
+                <h2>Добавить нового участника</h2>
                 <input
                     type="text"
                     placeholder="Имя пользователя"
@@ -94,28 +106,33 @@ const ComponentThree = () => {
                     className="input-field"
                 />
                 <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value)}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
                     className="input-field"
                 >
                     <option value="worker">Работник</option>
                     <option value="manager">Начальник</option>
                 </select>
                 <button onClick={handleAddUser} className="save-button">
-                    Сохранить пользователя
+                    Сохранить участника
                 </button>
             </div>
             <div className="divider"></div>
             <div className="list-container">
-                <h2>Список пользователей</h2>
+                <h2>Список участников</h2>
                 <ul>
                     {users.map((user) => (
                         <li key={user.id}>
                             <span
                                 className="user-name"
                                 onClick={() => handleSelectUser(user)}
+                                role="button"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') handleSelectUser(user);
+                                }}
                             >
-                                {user.name} - {user.status}
+                                {user.name} - {user.role}
                             </span>
                             <button
                                 className="delete-button"
@@ -128,12 +145,11 @@ const ComponentThree = () => {
                 </ul>
                 {selectedUser && (
                     <div className="user-details">
-                        <h3>Информация о пользователе</h3>
+                        <h3>Информация об участнике</h3>
                         <p>Имя: {selectedUser.name}</p>
-                        <p>Дата рождения: {selectedUser.birth_date}</p>
-                        <p>Город рождения: {selectedUser.birth_city}</p>
-                        <p>Время рождения: {selectedUser.birth_time}</p>
-                        <p>Статус: {selectedUser.status}</p>
+                        <p>Дата рождения: {new Date(selectedUser.birthday_info.birthday_timestamp * 1000).toLocaleDateString()}</p>
+                        <p>Город рождения: {selectedUser.birthday_info.birthday_location}</p>
+                        <p>Роль: {selectedUser.role}</p>
                     </div>
                 )}
             </div>

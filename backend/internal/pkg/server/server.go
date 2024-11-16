@@ -11,6 +11,7 @@ import (
 	"naimix/internal/pkg/db"
 	"net/http"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -41,6 +42,14 @@ func (r *Server) Stop() {
 
 func (r *Server) newAPI() *gin.Engine {
 	engine := gin.New()
+
+	engine.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"}, // Разрешить запросы с вашего фронтенда
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Authorization", "Content-Type"},
+		ExposeHeaders:    []string{"Content-Length"},
+		AllowCredentials: true,
+	}))
 
 	engine.GET("/health", func(ctx *gin.Context) {
 		ctx.Status(http.StatusOK)
@@ -100,10 +109,13 @@ func (r *Server) GetTeamAndMemberCompatibility(ctx *gin.Context) {
 
 	// Логируем найденную команду и участников
 	log.Printf("Team: %+v", team)
+	// req to python
 
+	// get resp and return in to ctx.
 	ctx.JSON(http.StatusOK, gin.H{
-		"team":    team,
-		"members": members,
+		"team":          team,
+		"members":       members,
+		"new_member_id": req.MemberId,
 	})
 }
 
