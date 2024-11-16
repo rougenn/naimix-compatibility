@@ -1,0 +1,60 @@
+.section-two {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: 100vh;
+    background-color: #ffffff;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.icon-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: 20%;
+    border: none;
+}
+
+.icon-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+
+.circle-icon:hover {
+    transform: scale(1.1);
+}
+
+.circle-icon img {
+    width: 100%;
+    height: 100%;
+}
+
+.side-panel {
+    width: 0;
+    overflow: hidden;
+    transition: width 0.3s ease;
+    background-color: #d4d4d4;
+    opacity: 0.8;
+    box-shadow: -4px 0 8px rgba(0, 0, 0, 0.1);
+    padding: 20px;  
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    height: 100%;
+}
+
+.side-panel.open {
+    width: 80%;
+}
+
+.placeholder {
+    font-size: 18px;
+    color: #888;
+}
