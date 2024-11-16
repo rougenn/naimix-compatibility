@@ -10,9 +10,8 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-var jwtSecret = []byte("your_secret_key") // Секретный ключ для подписи JWT
+var jwtSecret = []byte("your_secret_key")
 
-// Генерация Access Token (3 минуты)
 // GenerateAccessToken генерирует Access Token (действителен 3 минуты)
 func GenerateAccessToken(userID int) (string, error) {
 	claims := jwt.MapClaims{
@@ -71,7 +70,7 @@ func parseToken(tokenString string) (int, error) {
 		return 0, errors.New("invalid user ID in token")
 	}
 
-	log.Printf("Parsed user_id from token: %d", int(userID)) // Логируем user_id
+	log.Printf("Parsed user_id from token: %d", int(userID))
 	return int(userID), nil
 }
 

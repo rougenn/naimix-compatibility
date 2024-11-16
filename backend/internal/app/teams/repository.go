@@ -73,37 +73,53 @@ func RemoveMemberFromTeam(db *sql.DB, userID, teamID, memberID int) error {
 
 func GetTeamWithMembers(db *sql.DB, userID, teamID int) (models.Team, []models.Member, error) {
 	var team models.Team
+
+	// Получаем информацию о команде
 	query := `
-		SELECT id, name, created_at
-		FROM teams
-		WHERE id = $1 AND user_id = $2
-	`
+        SELECT id, name, created_at
+        FROM teams
+        WHERE id = $1 AND user_id = $2
+    `
 	err := db.QueryRow(query, teamID, userID).Scan(&team.ID, &team.Name, &team.CreatedAt)
 	if err != nil {
+		log.Printf("Error fetching team (teamID: %d, userID: %d): %v", teamID, userID, err)
 		return team, nil, err
 	}
 
+	log.Printf("Team found: %+v", team)
+
+	// Получаем участников команды
 	memberQuery := `
-		SELECT m.id, m.role, m.birthday_timestamp, m.birthday_location
-		FROM members m
-		JOIN team_members tm ON m.id = tm.member_id
-		WHERE tm.team_id = $1
-	`
+        SELECT m.id, m.role, m.birthday_timestamp, m.birthday_location
+        FROM members m
+        JOIN team_members tm ON m.id = tm.member_id
+        WHERE tm.team_id = $1
+    `
 	rows, err := db.Query(memberQuery, teamID)
 	if err != nil {
+		log.Printf("Error fetching members for teamID %d: %v", teamID, err)
 		return team, nil, err
 	}
 	defer rows.Close()
 
 	var members []models.Member
+	var memberIDs []int
+
 	for rows.Next() {
 		var member models.Member
 		err := rows.Scan(&member.ID, &member.Role, &member.BirthInfo.Timestamp, &member.BirthInfo.Location)
 		if err != nil {
+			log.Printf("Error scanning member row: %v", err)
 			return team, nil, err
 		}
+
+		// Добавляем ID участника в массив ID
+		memberIDs = append(memberIDs, member.ID)
 		members = append(members, member)
 	}
+
+	// Заполняем поле Members в структуре команды
+	team.Members = memberIDs
 
 	return team, members, nil
 }

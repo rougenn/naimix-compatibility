@@ -9,6 +9,7 @@ import (
 )
 
 func NewDB() *sql.DB {
+	// get username, password and bdname from environment
 	db, err := sql.Open("postgres", "postgres://username:password@localhost:5432/mydatabase?sslmode=disable")
 
 	if err != nil {

@@ -58,6 +58,7 @@ func (r *Server) newAPI() *gin.Engine {
 	protected.POST("/team/add-member", r.AddMember)
 	protected.POST("/team/delete-member", r.RemoveMember)
 	protected.GET("/teams", r.GetAllTeams)
+	protected.GET("/team/compatibility", r.GetTeamAndMemberCompatibility)
 
 	protected.POST("/member/create", r.CreateMember)
 	protected.POST("/member/delete", r.DeleteMember)
@@ -71,6 +72,39 @@ func (r *Server) Start() {
 	if err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func (r *Server) GetTeamAndMemberCompatibility(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
+	var req struct {
+		TeamID   int `json:"team_id" binding:"required"`
+		MemberId int `json:"member_id" binding:"required"`
+	}
+
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		log.Printf("Error parsing request body: %v", err)
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Логируем полученные значения
+	log.Printf("Received team_id: %d, user_id: %d", req.TeamID, req.MemberId)
+
+	team, members, err := teams.GetTeamWithMembers(r.DB, userID, req.TeamID)
+	if err != nil {
+		log.Printf("Error fetching team (teamID: %d, userID: %d): %v", req.TeamID, userID, err)
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Team not found"})
+		return
+	}
+
+	// Логируем найденную команду и участников
+	log.Printf("Team: %+v", team)
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"team":    team,
+		"members": members,
+	})
 }
 
 func (r *Server) LogIn(ctx *gin.Context) {

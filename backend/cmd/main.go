@@ -7,6 +7,7 @@ import (
 )
 
 func main() {
+	// get port from environment
 	s := server.New(":8090")
 
 	err := db.Migrate(s.DB, "scripts/migration.sql")
@@ -15,5 +16,4 @@ func main() {
 	}
 
 	s.Start()
-
 }

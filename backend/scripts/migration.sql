@@ -1,4 +1,4 @@
--- -- Удаляем таблицы, если они существуют
+-- Удаляем таблицы, если они существуют
 -- DROP TABLE IF EXISTS team_members;
 -- DROP TABLE IF EXISTS members;
 -- DROP TABLE IF EXISTS teams;
