@@ -48,18 +48,20 @@ func (r *Server) newAPI() *gin.Engine {
 
 	engine.POST("/user/login", r.LogIn)
 	engine.POST("/user/signup", r.Register)
+	engine.POST("/user/refresh-token", r.RefreshToken)
 
-	engine.POST("/team/create", r.CreateTeam)
-	engine.POST("/team/delete", r.DeleteTeam)
-	engine.POST("/team/add-member", r.AddMember)
-	engine.POST("/team/delete-member", r.RemoveMember)
-	engine.GET("/teams", r.GetAllTeams)
+	protected := engine.Group("/")
+	protected.Use(AuthMiddleware())
 
-	engine.POST("/member/create", r.CreateMember)
-	engine.POST("/member/delete", r.DeleteMember)
-	engine.GET("/members", r.GetAllMembers)
+	protected.POST("/team/create", r.CreateTeam)
+	protected.POST("/team/delete", r.DeleteTeam)
+	protected.POST("/team/add-member", r.AddMember)
+	protected.POST("/team/delete-member", r.RemoveMember)
+	protected.GET("/teams", r.GetAllTeams)
 
-	// get all the teams
+	protected.POST("/member/create", r.CreateMember)
+	protected.POST("/member/delete", r.DeleteMember)
+	protected.GET("/members", r.GetAllMembers)
 
 	return engine
 }
@@ -88,7 +90,24 @@ func (r *Server) LogIn(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"user": user})
+	// Генерация Access и Refresh токенов
+	accessToken, err := GenerateAccessToken(user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
+		return
+	}
+
+	refreshToken, err := GenerateRefreshToken(user.ID)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"user":          user,
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+	})
 }
 
 func (r *Server) Register(ctx *gin.Context) {
@@ -112,6 +131,8 @@ func (r *Server) Register(ctx *gin.Context) {
 }
 
 func (r *Server) CreateTeam(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var req struct {
 		Name string `json:"name" binding:"required"`
 	}
@@ -124,7 +145,7 @@ func (r *Server) CreateTeam(ctx *gin.Context) {
 		Name: req.Name,
 	}
 
-	teamID, err := teams.AddToDB(r.DB, team)
+	teamID, err := teams.AddToDB(r.DB, userID, team)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -134,6 +155,8 @@ func (r *Server) CreateTeam(ctx *gin.Context) {
 }
 
 func (r *Server) DeleteTeam(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var req struct {
 		TeamID int `json:"team_id" binding:"required"`
 	}
@@ -142,7 +165,7 @@ func (r *Server) DeleteTeam(ctx *gin.Context) {
 		return
 	}
 
-	err := teams.DeleteFromDB(r.DB, req.TeamID)
+	err := teams.DeleteFromDB(r.DB, userID, req.TeamID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Team not found"})
@@ -156,6 +179,8 @@ func (r *Server) DeleteTeam(ctx *gin.Context) {
 }
 
 func (r *Server) AddMember(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var req struct {
 		TeamID   int `json:"team_id" binding:"required"`
 		MemberID int `json:"member_id" binding:"required"`
@@ -165,7 +190,7 @@ func (r *Server) AddMember(ctx *gin.Context) {
 		return
 	}
 
-	err := teams.AddMemberToTeam(r.DB, req.TeamID, req.MemberID)
+	err := teams.AddMemberToTeam(r.DB, userID, req.TeamID, req.MemberID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -175,6 +200,8 @@ func (r *Server) AddMember(ctx *gin.Context) {
 }
 
 func (r *Server) RemoveMember(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var req struct {
 		TeamID   int `json:"team_id" binding:"required"`
 		MemberID int `json:"member_id" binding:"required"`
@@ -184,7 +211,7 @@ func (r *Server) RemoveMember(ctx *gin.Context) {
 		return
 	}
 
-	err := teams.RemoveMemberFromTeam(r.DB, req.TeamID, req.MemberID)
+	err := teams.RemoveMemberFromTeam(r.DB, userID, req.TeamID, req.MemberID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Member not found in the team"})
@@ -198,6 +225,8 @@ func (r *Server) RemoveMember(ctx *gin.Context) {
 }
 
 func (r *Server) CreateMember(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var req struct {
 		Role      string                 `json:"role" binding:"required"`
 		BirthInfo models.MemberBirthInfo `json:"birthday_info" binding:"required"`
@@ -212,7 +241,7 @@ func (r *Server) CreateMember(ctx *gin.Context) {
 		BirthInfo: req.BirthInfo,
 	}
 
-	memberID, err := members.AddToDB(r.DB, member)
+	memberID, err := members.AddToDB(r.DB, userID, member)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -222,6 +251,8 @@ func (r *Server) CreateMember(ctx *gin.Context) {
 }
 
 func (r *Server) DeleteMember(ctx *gin.Context) {
+	userID := getUserIDFromContext(ctx)
+
 	var request struct {
 		MemberID int `json:"member_id" binding:"required"`
 	}
@@ -230,7 +261,7 @@ func (r *Server) DeleteMember(ctx *gin.Context) {
 		return
 	}
 
-	err := members.DeleteFromDB(r.DB, request.MemberID)
+	err := members.DeleteFromDB(r.DB, userID, request.MemberID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Member not found"})
@@ -244,7 +275,9 @@ func (r *Server) DeleteMember(ctx *gin.Context) {
 }
 
 func (r *Server) GetAllMembers(ctx *gin.Context) {
-	members, err := members.GetAllMembers(r.DB)
+	userID := getUserIDFromContext(ctx)
+
+	members, err := members.GetAllMembers(r.DB, userID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch members"})
 		return
@@ -254,7 +287,9 @@ func (r *Server) GetAllMembers(ctx *gin.Context) {
 }
 
 func (r *Server) GetAllTeams(ctx *gin.Context) {
-	teams, err := teams.GetAllTeams(r.DB)
+	userID := getUserIDFromContext(ctx)
+
+	teams, err := teams.GetAllTeams(r.DB, userID)
 	if err != nil {
 		log.Printf("Failed to fetch teams: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch teams"})

@@ -2,38 +2,9 @@ package members
 
 import (
 	"database/sql"
+	"log"
 	"naimix/internal/app/models"
 )
-
-func AddToDB(db *sql.DB, member models.Member) (int, error) {
-	query := `
-		INSERT INTO members (role, birthday_timestamp, birthday_location)
-		VALUES ($1, $2, $3)
-		RETURNING id
-	`
-	var memberID int
-	err := db.QueryRow(query, member.Role, member.BirthInfo.Timestamp, member.BirthInfo.Location).Scan(&memberID)
-	return memberID, err
-}
-
-func DeleteFromDB(db *sql.DB, memberID int) error {
-	query := `DELETE FROM members WHERE id = $1`
-	result, err := db.Exec(query, memberID)
-	if err != nil {
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return err
-	}
-
-	if rowsAffected == 0 {
-		return sql.ErrNoRows // Возвращаем стандартную ошибку для случаев, когда запись не найдена
-	}
-
-	return nil
-}
 
 func GetMemberByID(db *sql.DB, memberID int) (models.Member, error) {
 	var member models.Member
@@ -47,12 +18,51 @@ func GetMemberByID(db *sql.DB, memberID int) (models.Member, error) {
 	return member, err
 }
 
-func GetAllMembers(db *sql.DB) ([]models.Member, error) {
+func AddToDB(db *sql.DB, userID int, member models.Member) (int, error) {
+	log.Printf("Inserting member with userID: %d, member: %+v", userID, member) // Логируем
+	query := `
+        INSERT INTO members (role, birthday_timestamp, birthday_location, user_id)
+        VALUES ($1, $2, $3, $4)
+        RETURNING id
+    `
+	var memberID int
+	err := db.QueryRow(query, member.Role, member.BirthInfo.Timestamp, member.BirthInfo.Location, userID).Scan(&memberID)
+	if err != nil {
+		log.Printf("Error inserting member: %s", err.Error()) // Логируем ошибку
+		return 0, err
+	}
+	return memberID, nil
+}
+
+func DeleteFromDB(db *sql.DB, userID, memberID int) error {
+	query := `
+		DELETE FROM members
+		WHERE id = $1 AND user_id = $2
+	`
+	result, err := db.Exec(query, memberID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
+}
+
+func GetAllMembers(db *sql.DB, userID int) ([]models.Member, error) {
 	query := `
 		SELECT id, role, birthday_timestamp, birthday_location
 		FROM members
+		WHERE user_id = $1
 	`
-	rows, err := db.Query(query)
+	rows, err := db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
