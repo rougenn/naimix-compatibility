@@ -16,7 +16,8 @@ cd naimix-compatibility
 ```
 
 ### **Установка зависимостей**
-- **Python 3.9+** (или другая версия, поддерживаемая проектом)  
+- **Python 3.9+** (или другая версия, поддерживаемая проектом)
+- **Go** для запуска сервера
 - **Зависимости:**
 ```bash
 pip install -r requirements.txt
@@ -30,14 +31,14 @@ API_COSMOGRAM_KEY=ваш_ключ
 ```
 
 ### **Запуск проекта**
-**Локально:**
+**python server:**
 ```bash
-python main.py
+python backend/python/app.py
 ```
 
-**С использованием Docker:**
+**go server:**
 ```bash
-docker-compose up --build
+go run backend/cmd/main.go
 ```
 
 ---
